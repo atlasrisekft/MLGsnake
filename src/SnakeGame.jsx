@@ -4,7 +4,7 @@ const GRID = 20
 const CELL = 22
 const W = GRID * CELL
 const H = GRID * CELL
-const BASE_SPEED = 140
+const BASE_SPEED = 180
 
 const MLG_TEXTS = [
   '360 NOSCOPE!', 'GET REKT', 'MLG PRO', 'YOLO', 'SWAG',
@@ -30,25 +30,9 @@ function createAudioCtx() {
   try { return new (window.AudioContext || window.webkitAudioContext)() } catch { return null }
 }
 
-function playAirhorn(actx) {
-  if (!actx) return
-  try {
-    const now = actx.currentTime
-    ;[230, 460, 345, 690].forEach(f => {
-      const osc = actx.createOscillator()
-      const gain = actx.createGain()
-      osc.type = 'sawtooth'
-      osc.frequency.setValueAtTime(f, now)
-      osc.frequency.linearRampToValueAtTime(f * 0.85, now + 0.6)
-      gain.gain.setValueAtTime(0, now)
-      gain.gain.linearRampToValueAtTime(0.08, now + 0.02)
-      gain.gain.setValueAtTime(0.08, now + 0.5)
-      gain.gain.linearRampToValueAtTime(0, now + 0.65)
-      osc.connect(gain)
-      gain.connect(actx.destination)
-      osc.start(now); osc.stop(now + 0.65)
-    })
-  } catch(e) {}
+function playAirhorn() {
+  const audio = new Audio('/airhorn.mp3')
+  audio.play().catch(() => {})
 }
 
 function playHitmarker(actx) {
@@ -338,7 +322,7 @@ export default function SnakeGame() {
       speedRef.current = Math.max(55, BASE_SPEED - Math.floor(s / 40) * 10)
       setScore(s)
       ensureAudio()
-      playAirhorn(audioCtxRef.current)
+      playAirhorn()
       playHitmarker(audioCtxRef.current)
       shakeRef.current = 0.6
       hitmarkerRef.current = { x: food.x, y: food.y, life: 1 }
