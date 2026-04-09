@@ -95,6 +95,7 @@ export default function SnakeGame() {
   const particlesRef = useRef([])
   const strobeRef = useRef(0)
 
+  const [scale, setScale] = useState(1)
   const [score, setScore] = useState(0)
   const [best, setBest] = useState(() => +localStorage.getItem('snakeBest') || 0)
   const [phase, setPhase] = useState('start')
@@ -382,28 +383,32 @@ export default function SnakeGame() {
   }, [startGame])
 
   useEffect(() => {
-    let sx, sy
-    const onStart = (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY }
-    const onEnd = (e) => {
-      if (!gs.current.running) { startGame(); return }
-      const dx = e.changedTouches[0].clientX - sx
-      const dy = e.changedTouches[0].clientY - sy
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
-      const cur = gs.current.dir
-      const nd = Math.abs(dx) > Math.abs(dy)
-        ? (dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 })
-        : (dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 })
-      if (nd.x === -cur.x && nd.y === -cur.y) return
-      gs.current.nextDir = nd
+    const updateScale = () => {
+      const s = Math.min(1, (window.innerWidth - 32) / W)
+      setScale(s)
     }
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd, { passive: true })
-    return () => { window.removeEventListener('touchstart', onStart); window.removeEventListener('touchend', onEnd) }
+    updateScale()
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
+  }, [])
+
+  const handleTouch = useCallback((e) => {
+    if (!gs.current.running) { startGame(); return }
+    const rect = canvasRef.current.getBoundingClientRect()
+    const touch = e.touches[0]
+    const dx = touch.clientX - rect.left - rect.width / 2
+    const dy = touch.clientY - rect.top - rect.height / 2
+    const cur = gs.current.dir
+    const nd = Math.abs(dx) > Math.abs(dy)
+      ? (dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 })
+      : (dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 })
+    if (nd.x === -cur.x && nd.y === -cur.y) return
+    gs.current.nextDir = nd
   }, [startGame])
 
   return (
     <div className="sg-root mlg-root">
-      <div className="sg-panel">
+      <div className="sg-panel" style={{ width: W * scale }}>
         <div className="sg-header mlg-header">
           <div className="sg-scorebox">
             <span className="sg-label mlg-label">KILLS</span>
@@ -418,8 +423,8 @@ export default function SnakeGame() {
           </div>
         </div>
 
-        <div className="sg-canvas-wrap">
-          <canvas ref={canvasRef} width={W} height={H} className="sg-canvas" />
+        <div className="sg-canvas-wrap" onTouchStart={handleTouch} style={{ width: W * scale, height: H * scale }}>
+          <canvas ref={canvasRef} width={W} height={H} className="sg-canvas" style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} />
 
           {popups.map(p => (
             <div key={p.id} className="mlg-popup" style={{ left: p.x, top: p.y, color: p.color }}>
